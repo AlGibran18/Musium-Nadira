@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Museum Kenangan Kita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&family=Homemade+Apple&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{fontFamily:{serif:['"Cormorant Garamond"','serif'],sans:['Jost','sans-serif'],hand:['"Homemade Apple"','cursive']},colors:{ink:'#150f13',plum:'#22171e',bone:'#ece2d0',brass:'#c2a15f',rose:'#a8485a'}}}}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<style>
+html{scroll-behavior:smooth}
+body{background:#150f13;color:#ece2d0;font-family:Jost,sans-serif;font-weight:300;overflow-x:hidden}
+[x-cloak]{display:none!important}
+::selection{background:#a8485a;color:#fff}
+#spot{position:fixed;inset:0;z-index:40;pointer-events:none;background:radial-gradient(circle 280px at var(--x,50%) var(--y,30%),rgba(236,210,160,.14),rgba(21,15,19,0) 70%);mix-blend-mode:screen}
+#vignette{position:fixed;inset:0;z-index:39;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.55))}
+.glass{background:rgba(236,226,208,.06);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(236,226,208,.14)}
+.word{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.12em}
+.word>span{display:inline-block;transform:translateY(110%)}
+/* polaroid flip */
+.flip{perspective:1200px}
+.flip-in{position:relative;transition:transform .8s cubic-bezier(.2,.8,.2,1);transform-style:preserve-3d}
+.flip.on .flip-in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.back{transform:rotateY(180deg)}
+.polaroid{background:#f1eadb;box-shadow:0 20px 40px -12px rgba(0,0,0,.7)}
+/* frames */
+.frame-gold{padding:14px;background:linear-gradient(135deg,#6e5526,#e6cd8e 30%,#8a6b30 55%,#e0c27c 80%,#6e5526);box-shadow:0 40px 80px -20px #000}
+.frame-black{padding:14px;background:linear-gradient(135deg,#050304,#2b2226 50%,#050304);box-shadow:0 40px 80px -20px #000,0 0 0 1px #c2a15f55}
+.mat{padding:clamp(14px,3vw,34px);background:#e9dfcc;box-shadow:inset 0 0 18px rgba(0,0,0,.35)}
+.bar{width:3px;background:#c2a15f;border-radius:2px;height:4px;transition:height .2s}
+.playing .bar{animation:eq 1s ease-in-out infinite}
+.bar:nth-child(2){animation-delay:.15s!important}.bar:nth-child(3){animation-delay:.3s!important}.bar:nth-child(4){animation-delay:.45s!important}.bar:nth-child(5){animation-delay:.1s!important}
+@keyframes eq{0%,100%{height:4px}50%{height:20px}}
+.caret::after{content:'|';animation:blink 1s steps(1) infinite;color:#c2a15f}
+@keyframes blink{50%{opacity:0}}
+.tl-line{background:linear-gradient(#c2a15f00,#c2a15f88 8%,#c2a15f88 92%,#c2a15f00)}
+.chip{transition:all .3s}.chip.act{background:#ece2d0;color:#150f13;border-color:#ece2d0}
+img{background:#2a1f26}
+@media (hover:none){#spot{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body x-data="museum()" x-init="init()" :class="(lb||letter)&&'overflow-hidden'">
+<div id="spot"></div><div id="vignette"></div>
+<audio x-ref="aud" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"></audio>
+
+<!-- Audio player -->
+<div class="fixed bottom-4 right-4 z-[60] glass rounded-full pl-2 pr-5 py-2 flex items-center gap-3" :class="playing&&'playing'">
+  <button @click="toggleAudio()" class="w-10 h-10 rounded-full bg-bone text-ink grid place-items-center" :aria-label="playing?'Jeda musik':'Putar musik'"><i class="fa-solid" :class="playing?'fa-pause':'fa-play ml-0.5'"></i></button>
+  <div class="flex items-end gap-[3px] h-5"><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span></div>
+  <span class="hidden sm:block font-serif italic text-sm text-bone/70">Lagu kita</span>
+</div>
+
+<!-- HERO -->
+<header class="relative min-h-screen flex flex-col justify-between px-6 md:px-14 pt-8 pb-12" style="background:radial-gradient(ellipse at 70% 10%,#3a222c 0,#150f13 60%)">
+  <nav class="flex justify-between items-center font-serif italic text-bone/70 text-lg">
+    <span>Koleksi Pribadi, No. 1</span>
+    <span class="hidden sm:inline">Dibuka setiap hari, tanpa tiket</span>
+  </nav>
+  <div class="my-14">
+    <h1 id="title" class="font-serif font-light leading-[.88] tracking-tight text-[clamp(3.6rem,15vw,13rem)]">
+      <div>Museum</div><div class="italic text-brass pl-[8vw]">Kenangan</div><div>Kita</div>
+    </h1>
+    <p id="sub" class="font-serif text-xl md:text-2xl text-bone/75 max-w-xl mt-10 opacity-0 leading-relaxed">Delapan momen yang kami pajang di sini. Berjalanlah pelan-pelan, balik fotonya, dan baca apa yang tertulis di belakangnya.</p>
+  </div>
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+    <div class="glass rounded-sm p-5 md:p-7 w-full md:w-auto" id="counter">
+      <p class="font-serif italic text-bone/70 mb-3">Sudah bersama selama</p>
+      <div class="flex gap-5 md:gap-8">
+        <template x-for="u in units" :key="u[0]"><div class="text-center min-w-[3.2rem]"><div class="font-serif text-4xl md:text-6xl leading-none tabular-nums" x-text="u[1]"></div><div class="text-xs mt-2 text-bone/60 tracking-wide" x-text="u[0]"></div></div></template>
+      </div>
+    </div>
+    <a href="#wall" class="font-serif italic text-xl text-bone/80 hover:text-brass transition self-start md:self-end">Masuk ke galeri <i class="fa-solid fa-arrow-down ml-2 text-sm"></i></a>
+  </div>
+</header>
+
+<!-- FILTER -->
+<div class="sticky top-0 z-50 glass !border-x-0 !border-t-0 px-4 py-3 flex gap-2 overflow-x-auto md:justify-center items-center">
+  <span class="font-serif italic text-bone/60 mr-2 whitespace-nowrap">Saring kenangan:</span>
+  <template x-for="t in tags" :key="t"><button @click="setTag(t)" class="chip whitespace-nowrap text-sm border border-bone/30 rounded-full px-4 py-1.5 hover:border-brass" :class="tag===t&&'act'" x-text="t"></button></template>
+</div>
+
+<!-- 1. MEMORY WALL -->
+<section id="wall" class="px-6 md:px-14 py-24 md:py-32 max-w-7xl mx-auto">
+  <div class="grid md:grid-cols-12 gap-6 mb-16 items-end">
+    <h2 class="md:col-span-7 font-serif font-light text-5xl md:text-7xl leading-none">Dinding Polaroid</h2>
+    <p class="md:col-span-5 font-serif text-lg text-bone/70">Ketuk sebuah foto untuk membaliknya. Ada catatan tangan di baliknya yang belum pernah kami tunjukkan ke siapa pun.</p>
+  </div>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-9">
+    <template x-for="(m,i) in filtered" :key="m.id">
+      <div class="flip cursor-pointer" :class="flipped.includes(m.id)&&'on'" :style="`transform:rotate(${[-2.5,1.8,-1,2.6][i%4]}deg)`" @click="flipCard(m.id)" tabindex="0" @keydown.enter="flipCard(m.id)">
+        <div class="flip-in aspect-[4/5.2]">
+          <div class="face polaroid p-2.5 md:p-3.5 flex flex-col">
+            <img :src="m.img" :alt="m.title" loading="lazy" @error="fallback($event,m.id)" class="w-full flex-1 min-h-0 object-cover grayscale-[.25] sepia-[.15]">
+            <p class="font-hand text-ink text-[10px] md:text-xs text-center pt-3 pb-1" x-text="m.title"></p>
+          </div>
+          <div class="face back polaroid p-4 md:p-6 flex flex-col justify-between text-ink">
+            <p class="font-hand text-[10px] md:text-sm leading-[1.9]" x-text="m.secret"></p>
+            <div class="flex justify-between items-end text-[11px] font-serif italic text-ink/60"><span x-text="m.date"></span>
+              <button @click.stop="open(m)" class="underline hover:text-rose">Lihat cerita</button></div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+  <p x-show="!filtered.length" class="font-serif italic text-bone/60">Belum ada kenangan dengan tag ini.</p>
+</section>
+
+<!-- 2. TIMELINE -->
+<section id="journey" class="px-6 md:px-14 py-24 md:py-32 bg-plum/70">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="font-serif font-light text-5xl md:text-7xl leading-none mb-4">Lorong Waktu</h2>
+    <p class="font-serif text-lg text-bone/70 mb-20 max-w-lg">Dari kali pertama bertemu sampai hari ini, urut sesuai tanggalnya.</p>
+    <div class="relative">
+      <div class="tl-line absolute top-0 bottom-0 left-3 md:left-1/2 w-px"></div>
+      <template x-for="(m,i) in filtered" :key="m.id">
+        <div class="tl-item relative mb-20 md:mb-28 pl-12 md:pl-0 md:grid md:grid-cols-2 md:gap-20">
+          <span class="absolute left-[6px] md:left-1/2 md:-ml-[6px] top-3 w-3.5 h-3.5 rounded-full bg-brass ring-4 ring-ink"></span>
+          <div :class="i%2?'md:order-2':'md:text-right'">
+            <p class="font-serif italic text-brass text-xl" x-text="m.date"></p>
+            <h3 class="font-serif text-3xl md:text-4xl mt-1 mb-2" x-text="m.title"></h3>
+            <p class="text-sm text-bone/60 mb-4"><i class="fa-solid fa-location-dot mr-2 text-rose"></i><span x-text="m.place"></span></p>
+            <p class="font-serif text-lg text-bone/80 leading-relaxed" x-text="m.story.slice(0,110)+'…'"></p>
+          </div>
+          <div :class="i%2?'md:order-1':''" class="mt-6 md:mt-0">
+            <div class="relative overflow-hidden group cursor-zoom-in glass p-2" @click="open(m)">
+              <div class="overflow-hidden"><img :src="m.img" :alt="m.title" loading="lazy" @error="fallback($event,m.id)" class="w-full aspect-[4/3] object-cover transition duration-[1200ms] group-hover:scale-105"></div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</section>
+
+<!-- 3. MASTERPIECES -->
+<section id="masterpieces" class="px-6 md:px-14 py-24 md:py-32 max-w-6xl mx-auto">
+  <h2 class="font-serif font-light text-5xl md:text-7xl leading-none mb-4">Karya Pilihan</h2>
+  <p class="font-serif text-lg text-bone/70 mb-14 max-w-lg">Empat foto yang paling sering kami lihat ulang, lengkap dengan catatan kurator.</p>
+  <div class="grid md:grid-cols-12 gap-10 items-center">
+    <div class="md:col-span-7">
+      <div :class="cur%2?'frame-black':'frame-gold'" class="transition-all duration-700">
+        <div class="mat"><img :src="masters[cur].img" :alt="masters[cur].title" @error="fallback($event,masters[cur].id)" id="masterImg" class="w-full aspect-[4/5] md:aspect-[5/4] object-cover cursor-zoom-in" @click="open(masters[cur])"></div>
+      </div>
+    </div>
+    <div class="md:col-span-5">
+      <p class="font-serif italic text-brass" x-text="'Karya ' + (cur+1) + ' dari ' + masters.length"></p>
+      <h3 class="font-serif text-4xl md:text-5xl my-3 leading-tight" x-text="masters[cur].title"></h3>
+      <p class="font-serif italic text-bone/60 mb-5" x-text="masters[cur].place + ', ' + masters[cur].date"></p>
+      <p class="font-serif text-lg leading-relaxed text-bone/85 border-l border-brass/50 pl-5" x-text="masters[cur].curator"></p>
+      <div class="flex gap-3 mt-10">
+        <button @click="go(-1)" class="glass w-12 h-12 rounded-full hover:bg-bone hover:text-ink transition" aria-label="Sebelumnya"><i class="fa-solid fa-arrow-left"></i></button>
+        <button @click="go(1)" class="glass w-12 h-12 rounded-full hover:bg-bone hover:text-ink transition" aria-label="Berikutnya"><i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="px-6 md:px-14 py-20 text-center border-t border-bone/10">
+  <p class="font-serif italic text-2xl text-bone/70 mb-2">Pameran ini belum selesai. Kami masih menambah ruangnya.</p>
+  <p class="text-sm text-bone/40 mb-10">Dibuat dengan cinta, untuk kamu.</p>
+  <button @click="openLetter()" class="group inline-flex items-center gap-3 font-serif italic text-lg text-bone/50 hover:text-brass transition" aria-label="Buka surat rahasia">
+    <i class="fa-solid fa-lock group-hover:hidden"></i><i class="fa-solid fa-envelope-open-text hidden group-hover:inline"></i> ada satu ruangan yang terkunci
+  </button>
+</footer>
+
+<!-- LIGHTBOX -->
+<div x-cloak x-show="lb" x-transition.opacity class="fixed inset-0 z-[70] bg-black/85 backdrop-blur-md overflow-y-auto" @keydown.escape.window="close()" @click.self="close()">
+  <div class="min-h-full grid place-items-center p-4 md:p-10" @click.self="close()">
+    <div class="glass max-w-5xl w-full grid md:grid-cols-2 relative" x-show="lb" x-transition.scale.95>
+      <button @click="close()" class="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-ink/70 hover:bg-bone hover:text-ink transition" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+      <img :src="lb?.img.replace('w=900','w=1600')" :alt="lb?.title" class="w-full h-full max-h-[80vh] object-cover" @error="fallback($event,lb.id)">
+      <div class="p-7 md:p-10 flex flex-col">
+        <span class="self-start text-xs border border-brass/60 text-brass rounded-full px-3 py-1" x-text="lb?.tag"></span>
+        <h3 class="font-serif text-4xl md:text-5xl mt-4 leading-tight" x-text="lb?.title"></h3>
+        <p class="font-serif italic text-brass text-lg mt-2" x-text="lb?.date"></p>
+        <a :href="'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lb?.place||'')" target="_blank" rel="noopener" class="text-sm text-bone/70 hover:text-brass mt-3"><i class="fa-solid fa-location-dot mr-2 text-rose"></i><span x-text="lb?.place"></span> <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-1"></i></a>
+        <p class="font-serif text-lg leading-relaxed text-bone/85 mt-6" x-text="lb?.story"></p>
+        <button @click="speak()" class="mt-auto pt-8 self-start font-serif italic text-bone/80 hover:text-brass"><i class="fa-solid mr-2" :class="speaking?'fa-stop':'fa-volume-high'"></i><span x-text="speaking?'Hentikan catatan suara':'Dengarkan catatan suara'"></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECRET LETTER -->
+<div x-cloak x-show="letter" x-transition.opacity class="fixed inset-0 z-[80] bg-black/90 backdrop-blur-md overflow-y-auto" @keydown.escape.window="closeLetter()">
+  <div class="min-h-full grid place-items-center p-4">
+    <div class="relative max-w-2xl w-full bg-[#efe5d0] text-ink p-8 md:p-14 shadow-2xl" style="background-image:radial-gradient(ellipse at top,#f7efdd,#e3d6b9)">
+      <button @click="closeLetter()" class="absolute top-4 right-4 text-ink/50 hover:text-rose" aria-label="Tutup surat"><i class="fa-solid fa-xmark text-xl"></i></button>
+      <p class="font-hand text-rose text-sm mb-6">Surat Rahasia</p>
+      <p class="font-hand text-[13px] md:text-base leading-[2.1] whitespace-pre-line min-h-[18rem]" :class="typing&&'caret'" x-text="typed"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+function museum(){
+  const START=new Date('2023-02-14T19:30:00'); // ganti dengan tanggal jadian kalian
+  const U=(id)=>`https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=80`;
+  const LETTER=`Sayang,\n\nKalau kamu membaca ini, berarti kamu sudah berjalan sampai ruangan paling ujung.\n\nAku tidak pandai menaruh perasaan dalam kalimat panjang. Jadi aku taruh di sini, di antara foto-foto yang kita ambil tanpa sadar bahwa suatu hari akan jadi favoritku.\n\nTerima kasih sudah tetap tinggal di hari-hari yang biasa. Karena di hari biasa itulah aku paling yakin: aku mau pulang ke kamu.\n\nSelamanya milikmu.`;
+  return {
+    tags:['Semua','First Date','Travel & Adventure','Funny Moments','Everyday'], tag:'Semua',
+    flipped:[], lb:null, cur:0, letter:false, typed:'', typing:false, playing:false, speaking:false, units:[], timer:null, ty:null,
+    memories:[
+      {id:1,tag:'First Date',title:'Kopi Pertama',date:'12 Januari 2023',place:'Kedai Kopi, Malang',img:U('photo-1522673607200-164d1b6ce486'),secret:'Kamu pesan kopi pahit padahal gugup. Aku pura-pura tidak lihat kamu meringis.',story:'Pertemuan pertama yang katanya hanya sebentar. Kita malah duduk tiga jam, sampai barista mulai menyapu lantai di sekitar kaki kita.',curator:'Foto ini mengajarkan bahwa awal yang canggung sering menjadi bab terbaik.'},
+      {id:2,tag:'First Date',title:'Hujan di Alun-alun',date:'14 Februari 2023',place:'Alun-alun Kota Batu',img:U('photo-1529619768328-e37af76c6fe5'),secret:'Di sini aku bilang "iya". Jantungku lebih keras dari hujannya.',story:'Hari kami resmi jadian. Payung cuma satu, dan kamu bilang tidak apa-apa basah sebelah asal aku kering.',curator:'Bahu yang basah sebelah menjadi tanda tangan paling jujur pada karya ini.'},
+      {id:3,tag:'Travel & Adventure',title:'Matahari Terbit Bromo',date:'3 Juni 2023',place:'Gunung Bromo, Jawa Timur',img:U('photo-1516589178581-6cd7833ae3b2'),secret:'Jari kita beku, tapi tidak ada yang mau melepas genggaman.',story:'Berangkat jam dua pagi, mengantuk, kedinginan. Lalu langit berubah jingga dan kita lupa semua keluhan tadi.',curator:'Cahaya pagi yang jatuh pada dua siluet, tanpa perlu filter apa pun.'},
+      {id:4,tag:'Funny Moments',title:'Mi Instan Gosong',date:'21 Agustus 2023',place:'Dapur kos, Malang',img:U('photo-1511895426328-dc8714191300'),secret:'Aku tahu kamu sengaja bilang enak. Aku tetap sayang.',story:'Percobaan masak pertama berakhir dengan alarm asap dan tawa yang tidak berhenti sampai tetangga mengetuk pintu.',curator:'Kegagalan kecil yang diabadikan dengan serius. Sebuah komedi domestik.'},
+      {id:5,tag:'Travel & Adventure',title:'Pantai Tak Bernama',date:'9 Desember 2023',place:'Pantai Balekambang',img:U('photo-1507525428034-b723cf961d3e'),secret:'Kita nyasar dua jam. Ini hadiah dari nyasar itu.',story:'Peta di ponsel bilang belok kiri, jalan bilang sebaliknya. Kita ikut jalan, dan menemukan pantai yang hampir kosong.',curator:'Garis horizon dibiarkan lurus, sementara dua orang di dalamnya tidak.'},
+      {id:6,tag:'Everyday',title:'Minggu Sore',date:'17 Maret 2024',place:'Rumah, ruang tengah',img:U('photo-1474552226712-ac0f0961a954'),secret:'Hari paling biasa, dan justru paling kusimpan.',story:'Tidak ada rencana. Hanya film yang tidak selesai ditonton, dan kamu tertidur di bahuku lebih dulu.',curator:'Karya tentang kebiasaan. Ketenangan yang tidak perlu pemandangan.'},
+      {id:7,tag:'Funny Moments',title:'Salah Kostum',date:'30 Oktober 2024',place:'Pesta ulang tahun teman',img:U('photo-1494774157365-9e04c6720e47'),secret:'Kita satu-satunya yang datang pakai kostum. Tema pestanya ternyata biasa saja.',story:'Kita berdiri di pintu dengan percaya diri penuh, lalu sadar semua orang menatap. Kita tetap berfoto.',curator:'Percaya diri berdua mengalahkan rasa malu sendirian.'},
+      {id:8,tag:'Everyday',title:'Anniversary Ketiga',date:'14 Februari 2026',place:'Teras favorit kita',img:U('photo-1518199266791-5375a83190b7'),secret:'Tiga tahun. Aku masih salah tingkah tiap kamu tersenyum begitu.',story:'Makan malam sederhana di teras, lilin kecil, dan janji yang diucapkan pelan supaya hanya kita yang dengar.',curator:'Karya terbaru dalam koleksi. Tinta masih basah, pameran belum selesai.'}
+    ],
+    get filtered(){return (this.tag==='Semua'?this.memories:this.memories.filter(m=>m.tag===this.tag))},
+    get masters(){return [this.memories[2],this.memories[1],this.memories[4],this.memories[7]]},
+    init(){
+      this.tick();this.timer=setInterval(()=>this.tick(),1000);
+      const spot=document.getElementById('spot');
+      window.addEventListener('pointermove',e=>{spot.style.setProperty('--x',e.clientX+'px');spot.style.setProperty('--y',e.clientY+'px')});
+      // hero: satu momen terorkestrasi
+      document.querySelectorAll('#title>div').forEach(l=>{l.innerHTML=l.textContent.trim().split(/\s+/).map(w=>`<span class="word"><span>${w}</span></span>`).join(' ')});
+      const tl=gsap.timeline({delay:.3});
+      tl.to('#title .word>span',{y:0,duration:1.4,ease:'power4.out',stagger:.22})
+        .to('#sub',{opacity:1,duration:1.2},'-=.6').from('#counter',{opacity:0,y:30,duration:1.2,ease:'power3.out'},'-=.9');
+      gsap.registerPlugin(ScrollTrigger);
+      this.$nextTick(()=>this.reveal());
+    },
+    reveal(){
+      ScrollTrigger.getAll().forEach(s=>s.kill());
+      gsap.utils.toArray('.tl-item').forEach(el=>gsap.from(el,{opacity:0,y:50,duration:1,ease:'power3.out',scrollTrigger:{trigger:el,start:'top 85%'}}));
+    },
+    tick(){
+      let s=Math.max(0,Math.floor((Date.now()-START)/1000));
+      const d=Math.floor(s/86400);s%=86400;const h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);
+      const p=n=>String(n).padStart(2,'0');
+      this.units=[['hari',d],['jam',p(h)],['menit',p(m)],['detik',p(s%60)]];
+    },
+    setTag(t){this.tag=t;this.flipped=[];this.$nextTick(()=>{this.reveal();ScrollTrigger.refresh();gsap.from('.flip',{opacity:0,y:30,stagger:.06,duration:.7,ease:'power2.out'})})},
+    flipCard(id){this.flipped=this.flipped.includes(id)?this.flipped.filter(x=>x!==id):[...this.flipped,id]},
+    go(d){const n=(this.cur+d+this.masters.length)%this.masters.length;
+      gsap.to('#masterImg',{opacity:0,x:-30*d,duration:.35,onComplete:()=>{this.cur=n;gsap.fromTo('#masterImg',{opacity:0,x:30*d},{opacity:1,x:0,duration:.6,ease:'power3.out'})}})},
+    open(m){this.lb=m;this.stopSpeak()},
+    close(){this.lb=null;this.stopSpeak()},
+    fallback(e,id){if(!e.target.dataset.f){e.target.dataset.f=1;e.target.src=`https://picsum.photos/seed/memori${id}/900/700`}},
+    toggleAudio(){const a=this.$refs.aud;if(a.paused){a.volume=.5;a.play().then(()=>this.playing=true).catch(()=>{})}else{a.pause();this.playing=false}},
+    speak(){if(this.speaking)return this.stopSpeak();if(!('speechSynthesis' in window))return;
+      const u=new SpeechSynthesisUtterance(this.lb.title+'. '+this.lb.story);u.lang='id-ID';u.rate=.9;u.onend=()=>this.speaking=false;this.speaking=true;speechSynthesis.speak(u)},
+    stopSpeak(){if('speechSynthesis' in window)speechSynthesis.cancel();this.speaking=false},
+    openLetter(){this.letter=true;this.typed='';this.typing=true;let i=0;clearInterval(this.ty);
+      this.ty=setInterval(()=>{this.typed=LETTER.slice(0,++i);if(i>=LETTER.length){clearInterval(this.ty);this.typing=false}},55)},
+    closeLetter(){clearInterval(this.ty);this.letter=false;this.typing=false}
+  }
+}
+</script>
+</body>
+</html>
